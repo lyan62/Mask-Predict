@@ -215,24 +215,25 @@ def batch_by_size(
     sample_len = 0
     sample_lens = []
     for idx in indices:
-        sample_lens.append(num_tokens_fn(idx))
-        sample_len = max(sample_len, sample_lens[-1])
-        assert sample_len <= max_tokens, (
-            "sentence at index {} of size {} exceeds max_tokens "
-            "limit of {}!".format(idx, sample_len, max_tokens)
-        )
-        num_tokens = (len(batch) + 1) * sample_len
-        if is_batch_full(num_tokens):
-            mod_len = max(
-                bsz_mult * (len(batch) // bsz_mult),
-                len(batch) % bsz_mult,
+        if sample_len <= max_tokens:
+            sample_lens.append(num_tokens_fn(idx))
+            sample_len = max(sample_len, sample_lens[-1])
+            assert sample_len <= max_tokens, (
+                "sentence at index {} of size {} exceeds max_tokens "
+                "limit of {}!".format(idx, sample_len, max_tokens)
             )
-            yield batch[:mod_len]
-            batch = batch[mod_len:]
-            sample_lens = sample_lens[mod_len:]
-            sample_len = max(sample_lens) if len(sample_lens) > 0 else 0
+            num_tokens = (len(batch) + 1) * sample_len
+            if is_batch_full(num_tokens):
+                mod_len = max(
+                    bsz_mult * (len(batch) // bsz_mult),
+                    len(batch) % bsz_mult,
+                )
+                yield batch[:mod_len]
+                batch = batch[mod_len:]
+                sample_lens = sample_lens[mod_len:]
+                sample_len = max(sample_lens) if len(sample_lens) > 0 else 0
 
-        batch.append(idx)
+            batch.append(idx)
 
     if len(batch) > 0:
         yield batch
